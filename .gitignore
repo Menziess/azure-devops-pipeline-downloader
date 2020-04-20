@@ -1,6 +1,9 @@
 # Secrets
 .env
 
+# Data folder
+data/
+
 # Editor
 .vscode/
 

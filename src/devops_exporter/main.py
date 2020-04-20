@@ -2,7 +2,7 @@
 
 import argparse
 import json
-from itertools import islice
+import requests
 from os import getenv, path, makedirs
 from typing import Any, Iterable, Union
 
@@ -18,8 +18,8 @@ def get_args():
     parser = argparse.ArgumentParser('app')
     parser.add_argument('project', type=str)
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('-b', '--build', action='store_true')
-    group.add_argument('-r', '--release', action='store_true')
+    group.add_argument('--build', action='store_true')
+    group.add_argument('--release', action='store_true')
     parser.add_argument('-i', '--ids', type=int, nargs='+')
     return parser.parse_args()
 
@@ -36,15 +36,20 @@ def connect(token: str, url: str):
                       creds=BasicAuthentication('', token))
 
 
-def write_dict(folder: str, d: dict) -> None:
+def write_dict(folder: str, filename: str, d: dict) -> None:
     """Write definition to disk."""
     if not path.exists(folder):
         makedirs(folder)
-    with open(path.join(folder, d['name'], '.json'), 'w') as f:
+    with open(path.join(folder, filename) + '.json', 'w') as f:
         json.dump(d, f)
 
 
-def get_pipeline_definitions(
+def query_az_api(url: str, token: str):
+    """Send request to Azure API using pat token."""
+    return requests.get(url, auth=('', token))
+
+
+def iterate_pipeline_definitions(
     client: Union[BuildClient, ReleaseClient],
     project: str,
     ids: Iterable[int],
@@ -59,11 +64,12 @@ def get_pipeline_definitions(
     if ids:
         return (get_definition(project, i) for i in ids)
 
-    # Get all ids
     batch = get_definitions(project)
     yield from batch.value
-    yield from get_pipeline_definitions(
-        client, project, [], batch.continuation_token)
+
+    if batch.continuation_token:
+        yield from iterate_pipeline_definitions(
+            client, project, [], batch.continuation_token)
 
 
 if __name__ == "__main__":
@@ -79,12 +85,19 @@ if __name__ == "__main__":
     # Get args
     args = get_args()
 
-    # Get definitions iterable
-    defs = get_pipeline_definitions(
-        getattr(conn.clients,
-                'get_build_client' if args.build else 'get_release_client')(),
+    # Pipeline type
+    pipeline_type = 'build' if args.build else 'release'
+
+    # Get build/release definitions iterable
+    defs = iterate_pipeline_definitions(
+        getattr(conn.clients, f'get_{pipeline_type}_client')(),
         args.project,
         args.ids)
 
-    # Do stuff
-    print(list(islice(defs, 100, 101)))
+    # Use definition url as python sdk doesn't offer definition json
+    for d in defs:
+        response = query_az_api(d.url, env.get('personal_access_token', ''))
+        data = json.loads(response.content)
+        filename = data['name'].replace('/', '.')
+        write_dict(f'data/{pipeline_type}', filename, data)
+        print(f'Downloaded {filename}')
