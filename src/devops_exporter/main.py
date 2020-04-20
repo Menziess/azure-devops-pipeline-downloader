@@ -32,8 +32,12 @@ def get_env(*keys: str) -> dict:
 
 def connect(token: str, url: str):
     """Create new connection."""
-    return Connection(base_url=url,
-                      creds=BasicAuthentication('', token))
+    try:
+        return Connection(base_url=url,
+                          creds=BasicAuthentication('', token))
+    except ValueError as e:
+        print('Export env: `organization_url`, `personal_access_token`.')
+        raise e
 
 
 def write_dict(folder: str, filename: str, d: dict) -> None:
