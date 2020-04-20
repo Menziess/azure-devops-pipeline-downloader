@@ -1,0 +1,31 @@
+variables:
+  python.version: "3.7"
+
+steps:
+  - task: UsePythonVersion@0
+    displayName: "Use Python $(python.version)"
+    inputs:
+      versionSpec: "$(python.version)"
+
+  - script: "export PACKAGE_NAME=$(devops-exporter)"
+    displayName: "Export variable"
+
+  - script: "pip install wheel"
+    displayName: "Install Wheel"
+
+  - script: "python setup.py bdist_wheel"
+    displayName: "Build"
+
+  - task: CopyFiles@2
+    displayName: Copy dist files
+    inputs:
+      sourceFolder: dist/
+      contents: devops-exporter*.whl
+      targetFolder: $(Build.ArtifactStagingDirectory)
+      flattenFolders: true
+
+  - task: PublishBuildArtifacts@1
+    displayName: "Publish Artifact"
+    inputs:
+      pathtoPublish: $(Build.ArtifactStagingDirectory)
+      ArtifactName: devops-exporter.whl
