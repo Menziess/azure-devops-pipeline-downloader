@@ -62,14 +62,14 @@ def iterate_pipeline_definitions(
         client, BuildClient) else client.get_release_definitions
 
     if ids:
-        return (get_definition(project, i) for i in ids)
+        yield from (get_definition(project, i) for i in ids)
+    else:
+        batch = get_definitions(project)
+        yield from batch.value
 
-    batch = get_definitions(project)
-    yield from batch.value
-
-    if batch.continuation_token:
-        yield from iterate_pipeline_definitions(
-            client, project, [], batch.continuation_token)
+        if batch.continuation_token:
+            yield from iterate_pipeline_definitions(
+                client, project, [], batch.continuation_token)
 
 
 if __name__ == "__main__":
