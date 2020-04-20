@@ -2,10 +2,10 @@
 
 import argparse
 import json
-import requests
-from os import getenv, path, makedirs
+from os import getenv, makedirs, path
 from typing import Any, Iterable, Union
 
+import requests
 from azure.devops.connection import Connection
 from azure.devops.released.build import BuildClient
 from azure.devops.released.release import ReleaseClient
@@ -55,7 +55,7 @@ def iterate_pipeline_definitions(
     ids: Iterable[int],
     continuation_token=None
 ) -> Iterable[Any]:
-    """Get pipeline ids."""
+    """Get pipeline definitions."""
     get_definition = client.get_definition if isinstance(
         client, BuildClient) else client.get_release_definition
     get_definitions = client.get_definitions if isinstance(

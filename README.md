@@ -12,9 +12,9 @@ This script can be used to export Azure DevOps pipelines.
 3. Run the main script as:
     ```sh
     # download release pipelines
-    python main.py 'Albert Heijn' --release
+    python main.py 'projectname' --release
     # download build pipelines
-    python main.py 'Albert Heijn' --build
+    python main.py 'projectname' --build
     # download build pipelines 1 and 2
-    python main.py 'Albert Heijn' --build --ids 1 2
+    python main.py 'projectname' --build --ids 1 2
     ```
