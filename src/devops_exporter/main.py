@@ -1,13 +1,15 @@
 """Main program."""
 
 import argparse
-from os import getenv
-from typing import Union, Iterable, Any
+import json
+from itertools import islice
+from os import getenv, path, makedirs
+from typing import Any, Iterable, Union
 
-from dotenv import load_dotenv
 from azure.devops.connection import Connection
 from azure.devops.released.build import BuildClient
 from azure.devops.released.release import ReleaseClient
+from dotenv import load_dotenv
 from msrest.authentication import BasicAuthentication
 
 
@@ -15,9 +17,9 @@ def get_args():
     """Get the users arguments."""
     parser = argparse.ArgumentParser('app')
     parser.add_argument('project', type=str)
-    group = argparse.add_mutually_exclusive_group()
+    group = parser.add_mutually_exclusive_group()
     group.add_argument('-b', '--build', action='store_true')
-    group.add_argument('-r', '--release', action='store_false')
+    group.add_argument('-r', '--release', action='store_true')
     parser.add_argument('-i', '--ids', type=int, nargs='+')
     return parser.parse_args()
 
@@ -34,15 +36,34 @@ def connect(token: str, url: str):
                       creds=BasicAuthentication('', token))
 
 
+def write_dict(folder: str, d: dict) -> None:
+    """Write definition to disk."""
+    if not path.exists(folder):
+        makedirs(folder)
+    with open(path.join(folder, d['name'], '.json'), 'w') as f:
+        json.dump(d, f)
+
+
 def get_pipeline_definitions(
     client: Union[BuildClient, ReleaseClient],
-    ids: Iterable[int] = []
-) -> Iterable[int]:
+    project: str,
+    ids: Iterable[int],
+    continuation_token=None
+) -> Iterable[Any]:
     """Get pipeline ids."""
-    if ids:
-        return (client.get_definition(i) for i in ids)
+    get_definition = client.get_definition if isinstance(
+        client, BuildClient) else client.get_release_definition
+    get_definitions = client.get_definitions if isinstance(
+        client, BuildClient) else client.get_release_definitions
 
-    return iter(client.get_definitions())
+    if ids:
+        return (get_definition(project, i) for i in ids)
+
+    # Get all ids
+    batch = get_definitions(project)
+    yield from batch.value
+    yield from get_pipeline_definitions(
+        client, project, [], batch.continuation_token)
 
 
 if __name__ == "__main__":
@@ -56,8 +77,14 @@ if __name__ == "__main__":
                    env.get('organization_url', ''))
 
     # Get args
-    n = get_args().n
+    args = get_args()
 
-    defs = get_pipeline_definitions()
+    # Get definitions iterable
+    defs = get_pipeline_definitions(
+        getattr(conn.clients,
+                'get_build_client' if args.build else 'get_release_client')(),
+        args.project,
+        args.ids)
 
-    print(n)
+    # Do stuff
+    print(list(islice(defs, 100, 101)))
