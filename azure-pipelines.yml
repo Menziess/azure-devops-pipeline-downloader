@@ -7,9 +7,6 @@ steps:
     inputs:
       versionSpec: "$(python.version)"
 
-  - script: "export PACKAGE_NAME=devops-exporter"
-    displayName: "Export variable"
-
   - script: "pip install wheel"
     displayName: "Install Wheel"
 
@@ -20,7 +17,7 @@ steps:
     displayName: Copy dist files
     inputs:
       sourceFolder: dist/
-      contents: devops-exporter*.whl
+      contents: devops_exporter*.whl
       targetFolder: $(Build.ArtifactStagingDirectory)
       flattenFolders: true
 
