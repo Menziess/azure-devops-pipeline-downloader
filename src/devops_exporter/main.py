@@ -76,8 +76,8 @@ def iterate_pipeline_definitions(
                 client, project, [], batch.continuation_token)
 
 
-if __name__ == "__main__":
-
+def main() -> None:
+    """Run the main program."""
     # Get secrets
     env = get_env('personal_access_token',
                   'organization_url')
@@ -105,3 +105,10 @@ if __name__ == "__main__":
         filename = data['name'].replace('/', '.')
         write_dict(f'data/{pipeline_type}', filename, data)
         print(f'Downloaded {filename}')
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('You stopped the program.')
