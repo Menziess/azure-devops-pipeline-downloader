@@ -23,5 +23,10 @@ if __name__ == '__main__':
             'requests==2.23.0',
             'six==1.14.0',
             'urllib3==1.25.9'
-        ]
+        ],
+        entry_points={
+            'console_scripts': [
+                'devops_exporter=devops_exporter.main:main'
+            ]
+        }
     )
